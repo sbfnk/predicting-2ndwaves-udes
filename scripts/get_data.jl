@@ -90,6 +90,11 @@ country_code = Dict(
 	"KR" => "South Korea"
 )
 
+# JHU uses different country names for some countries
+jhu_country_name = Dict(
+	"South Korea" => "Korea, South"
+)
+
 # Generates all possible data of interest (covid data, mobility, stringency index) for country_region
 function get_SIMX_data(country_region; sample_period=7, rolling=true)
 	abbrs = split(country_region, "-")
@@ -157,14 +162,15 @@ function get_SIMX_data(country_region; sample_period=7, rolling=true)
 		fname =  "time_series_covid19_confirmed_US.csv"
 		datafile = CSV.File(datadir("exp_raw", fname))
 		df = DataFrame(datafile)
-		region_df = df[df.province_state .== region_name,:]
+		region_df = df[df.Province_State .== region_name,:]
 		cumulative_cases = sum(Array(region_df[:,12:end]), dims=1)
 	else
 		fname = "time_series_covid19_confirmed_global.csv"
 		datafile = CSV.File(datadir("exp_raw", fname))
 		df = DataFrame(datafile)
-		country_df = df[df.country .== country_name,:]
-		region_df = isnothing(region_name) ? country_df[ismissing.(country_df.province_or_state),:] : country_df[country_df.province_or_state .== region_name,:]
+		jhu_name = get(jhu_country_name, country_name, country_name)
+		country_df = df[df[!,Symbol("Country/Region")] .== jhu_name,:]
+		region_df = isnothing(region_name) ? country_df[ismissing.(country_df[!,Symbol("Province/State")]),:] : country_df[country_df[!,Symbol("Province/State")] .== region_name,:]
 		cumulative_cases = Array(region_df[:,5:end])
 	end
 
@@ -313,14 +319,15 @@ function true_wave_summary()
 			fname =  "time_series_covid19_confirmed_US.csv"
 			datafile = CSV.File(datadir("exp_raw", fname))
 			df = DataFrame(datafile)
-			region_df = df[df.province_state .== region_name,:]
+			region_df = df[df.Province_State .== region_name,:]
 			cumulative_cases = sum(Array(region_df[:,12:end]), dims=1)
 		else
 			fname = "time_series_covid19_confirmed_global.csv"
 			datafile = CSV.File(datadir("exp_raw", fname))
 			df = DataFrame(datafile)
-			country_df = df[df.country .== country_name,:]
-			region_df = isnothing(region_name) ? country_df[ismissing.(country_df.province_or_state),:] : country_df[country_df.province_or_state .== region_name,:]
+			jhu_name = get(jhu_country_name, country_name, country_name)
+			country_df = df[df[!,Symbol("Country/Region")] .== jhu_name,:]
+			region_df = isnothing(region_name) ? country_df[ismissing.(country_df[!,Symbol("Province/State")]),:] : country_df[country_df[!,Symbol("Province/State")] .== region_name,:]
 			cumulative_cases = Array(region_df[:,5:end])
 		end
 
